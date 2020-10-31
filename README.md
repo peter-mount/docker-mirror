@@ -2,6 +2,48 @@
 
 This is a small utility to mirror docker images between repositories.
 
+Please note this is beta quality so it might work for you or not. So far it works but will probably require more testing.
+
+Prebuilt binaries will come at a future date.
+
+## Prerequisites
+
+Because this utility uses the [docker manifest](https://docs.docker.com/engine/reference/commandline/manifest/) command
+you need to enable experimental features to the Docker CLI.
+  
+## Mirroring a repository
+
+Simply compile this utility then:
+
+    docker-mirror -d docker.example.com hello-world
+
+Here we set the mirror repository as docker.example.com and ask it to mirror the hello-world image.
+
+As long as you have permissions to upload to `docker.example.com` then it will pull down every image for all architectures and then push them to the new repository.
+
+You can then access that image with:
+
+    docker run -it --rm docker.example.com/library/hello-world
+
+Note: the `library/` prefix is there because the `hello-world` image is in reality `library/hello-world`.
+If you had another image, say `area51/jenkins` then you could mirror it with:
+
+    docker-mirror -d docker.example.com area51/jenkins
+
+and then pull it from your local repository as:
+
+    docker pull docker.example.com/area51/jenkins
+
+### Adding a prefix in the local repository
+
+As my local Nexus3 repository has non-public images I prefer to keep the mirrored images with a mirror/ prefix.
+
+This is simple to implement. Using the above examples:
+
+    docker-mirror -d docker.example.com/mirror hello-world area51/jenkins
+
+Then those two images are accessible in the local repository as `docker.example.com/mirror/library/hello-world` & `docker.example.com/mirror/area51/jenkins`
+
 ## Why this utility exists
 
 On November 2 2020 Docker started enforcing a pull rate limit on the number of images you can pull from the main
@@ -38,3 +80,6 @@ platform you run them under.
 
 What this utility does is it works with the manifests and would ensure that all platforms are mirrored.
 
+Note: The utility deliberately limits the images mirrored with those who's OS = 'linux'.
+I did this deliberately as I found that for hello-world it refused to pull the image with Windows as the os.
+I also don't have a Windows instance so I cannot test against that Operating system.
