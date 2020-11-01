@@ -15,6 +15,7 @@ type Manifest struct {
 	SchemaVersion int                     `json:"schemaVersion"`
 	MediaType     string                  `json:"mediaType"`
 	Manifests     []*ManifestEntry        `json:"manifests"`
+	Simple        bool                    `json:"-"`
 }
 
 // ManifestEntry one entry per architecture
@@ -113,6 +114,28 @@ func (m *Manifest) retrieveManifest() error {
 
 // resolveImages manifest image names
 func (m *Manifest) resolveImages() error {
+
+	// No manifests then presume it's a traditional amd64 image
+	if len(m.Manifests) == 0 {
+		m.Manifests = append(m.Manifests, &ManifestEntry{
+			MediaType: "",
+			Size:      0,
+			Digest:    "",
+			Platform: Platform{
+				OS:           "linux",
+				Architecture: "amd64",
+				Variant:      "",
+			},
+			SrcImage: m.SourceImage.Remote(),
+			DstImage: m.MirrorImage.Remote(),
+		})
+
+		// Mark as a simple container
+		m.Simple = true
+
+		return nil
+	}
+
 	return m.ForEach(func(me *ManifestEntry) error {
 		me.SrcImage = m.SourceImage.Remote() + "@" + me.Digest
 
@@ -161,6 +184,12 @@ func (m *Manifest) pushImages() error {
 
 // Create manifest appends tasks to create the new manifest
 func (m *Manifest) createNewManifest() error {
+
+	// Not applicable for simple mode
+	if m.Simple {
+		return nil
+	}
+
 	multiImage := m.MirrorImage.Remote()
 
 	fmt.Printf("Creating manifest for %s\n", multiImage)
@@ -197,6 +226,12 @@ func (m *Manifest) createNewManifest() error {
 }
 
 func (m *Manifest) pushManifest() error {
+
+	// Not applicable for simple mode
+	if m.Simple {
+		return nil
+	}
+
 	multiImage := m.MirrorImage.Remote()
 	fmt.Printf("Pushing %s\n", multiImage)
 	return Exec("docker", "manifest", "push", "-p", multiImage)
