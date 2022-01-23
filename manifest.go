@@ -160,6 +160,11 @@ func (m *Manifest) resolveImages() error {
 func (m *Manifest) pullImages() error {
 	fmt.Println("Pulling images")
 	return m.ForEach(func(me *ManifestEntry) error {
+		// Pull dest image, ignoring any errors.
+		// This will allow docker to only pull images that have changed
+		fmt.Printf("Pulling %s\n", me.DstImage)
+		_ = Exec("docker", "pull", me.DstImage)
+
 		fmt.Printf("Pulling %s\n", me.SrcImage)
 		return Exec("docker", "pull", me.SrcImage)
 	})
